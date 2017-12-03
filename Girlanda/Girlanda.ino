@@ -24,7 +24,7 @@ void setup() {
 void PROG()                         // Программа выполняющаяся по прерыванию 
 {
   if( millis()-changed > 30*1000 ){
-    prog = (++prog) % 6;
+    prog = (++prog) % 4;
     changed = millis();
   }
 }
