@@ -8,7 +8,7 @@
 
 int tim = 0;         // переменная хранения длительности задержки для 1 и 2 программы
 int tim2 = 0;        // переменная хранения длительности задержки для 3 программы
-int prog = 0;        // переменная хранения номера прграммы 
+int prog = 2;        // переменная хранения номера прграммы 
 int spd = 255;
 unsigned long changed = 0;
 
@@ -17,8 +17,8 @@ void setup() {
   pinMode(G, OUTPUT);      // пин G на выход
   pinMode(B, OUTPUT);      // пин B на выход
   
-  tim  = 255 / 20 +2;
-  tim2 = 255 + 70;
+  tim  = spd / 20 +2;
+  tim2 = spd + 70;
 }
 
 void PROG()                         // Программа выполняющаяся по прерыванию 
@@ -32,7 +32,7 @@ void PROG()                         // Программа выполняющая
 void loop() {
  int r, g, b;                         // переменные хранения заполнения ШИМ для цветов 
 
- PROG();
+ // PROG();
 //tim = (analogRead(pot)/20)+2;         //читаем значение потенциометра
 //tim2 = analogRead(pot)+70;            //читаем значение потенциометра
 
@@ -41,33 +41,42 @@ void loop() {
 if (prog==0 | prog==3){       // Выполнять если включена программа №0 или №3
 for (r = 0; r < 255; r++) { 
     analogWrite(R, r);
-  delay(tim);}
+    delay(tim);
+}
+
 for (r =255; r >= 0; r--) { 
     analogWrite(R, r);
-  delay(tim);}
+    delay(tim);
+}
 delay(tim+500);
   
 for (r = 0; r < 255; r++) { 
-    analogWrite(B, r);
-  delay(tim);}
+  analogWrite(B, r);
+  delay(tim);
+}
 for (r = 255; r >= 0; r--) { 
-    analogWrite(B, r);
-  delay(tim);}
+  analogWrite(B, r);
+  delay(tim);
+}
 delay(tim+500);
   
-  for (r = 0; r < 255; r++) { 
+for (r = 0; r < 255; r++) { 
     analogWrite(R, r);
     analogWrite(G, r);
-    delay(tim);}
+    delay(tim);
+}
+
 for (r = 255; r >= 0; r--) { 
     analogWrite(R, r);
     analogWrite(G, r);
-  delay(tim);}
-  delay(tim+500);
+    delay(tim);
+}
+delay(tim+500);
   
 for (r = 0; r < 255; r++) { 
-    analogWrite(G, r);
-  delay(tim);}
+  analogWrite(G, r);
+  delay(tim);
+}
 for (r = 255; r >= 0; r--) { 
     analogWrite(G, r);
   delay(tim);}
@@ -127,8 +136,32 @@ for (r = 255; r >= 0; r--) {
     delay(tim);
   }
  }
+
  //---------------------------Еретья программа-------------------------------
  if(prog==2 | prog==3){         // Выполнять если включена программа №2 или №3
+ 
+   for(byte i=1;i<7;i++){
+     for(byte j=0;j<2;j++){
+       if( i & 1 )
+          digitalWrite(R, HIGH);
+       if( i & 2 )
+          digitalWrite(G, HIGH);
+       if( i & 4 )
+          digitalWrite(B, HIGH);
+          
+       delay(tim2);
+  
+       if( i & 1 )
+          digitalWrite(R, LOW);
+       if( i & 2 )
+          digitalWrite(G, LOW);
+       if( i & 4 )
+          digitalWrite(B, LOW);
+       delay(tim2);
+     }
+  }
+      
+  /*    
   digitalWrite(R,HIGH);
    delay(tim2);
   digitalWrite(R,LOW);
@@ -153,6 +186,7 @@ for (r = 255; r >= 0; r--) {
    delay(tim2);
   digitalWrite(B,LOW);
    delay(tim2);
+   */
   }
   
   
