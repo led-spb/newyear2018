@@ -1,21 +1,21 @@
-#define R 9           // красный пин
-#define G 3           // зеленый пин
-#define B 5           // синий пин
+#define R 9           // пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ
+#define G 3           // пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ
+#define B 5           // пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ
 
-// задержки
+// пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
 int tim = 0;
 int tim2 = 0;
 
-int prog = 3;        // переменная хранения номера прграммы 
+int prog = 3;        // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ 
 
 int spd = 255;
 unsigned long changed = 0;
-
+int debug = 0;
 
 void setup() {
-  pinMode(R, OUTPUT);      // пин R на выход
-  pinMode(G, OUTPUT);      // пин G на выход
-  pinMode(B, OUTPUT);      // пин B на выход
+  pinMode(R, OUTPUT);      // пїЅпїЅпїЅ R пїЅпїЅ пїЅпїЅпїЅпїЅпїЅ
+  pinMode(G, OUTPUT);      // пїЅпїЅпїЅ G пїЅпїЅ пїЅпїЅпїЅпїЅпїЅ
+  pinMode(B, OUTPUT);      // пїЅпїЅпїЅ B пїЅпїЅ пїЅпїЅпїЅпїЅпїЅ
   
   tim  = spd / 20 +2;
   tim2 = spd + 70;
@@ -114,85 +114,81 @@ void prog_2(){
   digitalWrite(B, LOW);
   delay(300);
 
-  // Синий
+  // пїЅпїЅпїЅпїЅпїЅ
   for( b = 0; b <= 255; b++ ){ 
     analogWrite(B, b);
     delay(tim);
   } 
 
-  // Фиолетовый
+  // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
   for( r = 0; r <= 255; r++ ){ 
     analogWrite(R, r);
     delay(tim);
   }
   
-  // Красный
+  // пїЅпїЅпїЅпїЅпїЅпїЅпїЅ
   for( b = 255; b >= 0; b-- ){ 
     analogWrite(B, b);
     delay(tim);
   } 
-  // Желтый
+  // пїЅпїЅпїЅпїЅпїЅпїЅ
   for( g = 0; g <= 255; g++ ){ 
     analogWrite(G, g);
     delay(tim);
   } 
-  // Зеленый
-  for( r = 255; r => 0; r-- ){ 
+  // пїЅпїЅпїЅпїЅпїЅпїЅпїЅ
+  for( r = 255; r >= 0; r-- ){ 
     analogWrite(R, r);
     delay(tim);
   } 
-  // Бирюзовый
+  // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
   for( b = 0; b <= 255; b++ ){ 
     analogWrite(B, b);
     delay(tim);
   } 
-  // Голубой
+  // пїЅпїЅпїЅпїЅпїЅпїЅпїЅ
   for( g = 255; g >= 0; g-- ){ 
     analogWrite(G, g);
     delay(tim);
   }
 }
 
+
+byte old = 0;
+byte curr = 0;
+
 void prog_3(){
-  byte old = 0;
+  curr = (curr+1) & 7;
+  if(curr==7) curr=1;
 
-  digitalWrite(R, LOW);
-  digitalWrite(G, LOW);
-  digitalWrite(B, LOW);
-  delay(300);
-
-
-  for( byte curr=1; curr<7; curr++ ){
-
-    for(int level=0; level<=255; level++){ 
-      // Red 
-      if( (old&1)==0 && (curr&1) ){
-        analogWrite(R, level);
-      } 
-      if( old&1 && (curr&1)==0 ){
-        analogWrite(R, 255-level);
-      }
-
-      // Green 
-      if( (old&2)==0 && (curr&2) ){
-        analogWrite(G, level);
-      }
-      if( old&2 && (curr&2)==0 ){
-        analogWrite(G, 255-level);
-      }
-
-      // Blue
-      if( (old&4)==0 && (curr&4) ){
-        analogWrite(B, level);
-      }
-      if( old&4 && (curr&4)==0 ){
-        analogWrite(B, 255-level);
-      }
-      delay(5);
+  for(int level=0; level<=255; level++){ 
+    // Red 
+    if( (old&1)==0 && (curr&1) ){
+      analogWrite(R, level);
+    } 
+    if( old&1 && (curr&1)==0 ){
+      analogWrite(R, 255-level);
     }
 
-    old = curr;
+    // Green 
+    if( (old&2)==0 && (curr&2) ){
+      analogWrite(G, level);
+    }
+    if( old&2 && (curr&2)==0 ){
+      analogWrite(G, 255-level);
+    }
+
+    // Blue
+    if( (old&4)==0 && (curr&4) ){
+      analogWrite(B, level);
+    }
+    if( old&4 && (curr&4)==0 ){
+      analogWrite(B, 255-level);
+    }
+    delay(10);
   }
+  delay(1000);
+  old = curr;
 }
 
 
@@ -234,4 +230,6 @@ void loop() {
   if( prog==0 || prog==2)  prog_2();
   if( prog==0 || prog==3)  prog_3();
   if( prog==0 || prog==4)  prog_4();
+  
+  debug = 1;
 }
