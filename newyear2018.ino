@@ -3,10 +3,13 @@
 #define B 5           // ����� ���
 
 // ��������
+byte old  = 0;
+byte curr = 0;
+
 int tim = 0;
 int tim2 = 0;
 
-int prog = 3;        // ���������� �������� ������ �������� 
+int prog = 2;        // ���������� �������� ������ �������� 
 
 int spd = 255;
 unsigned long changed = 0;
@@ -16,6 +19,8 @@ void setup() {
   pinMode(R, OUTPUT);      // ��� R �� �����
   pinMode(G, OUTPUT);      // ��� G �� �����
   pinMode(B, OUTPUT);      // ��� B �� �����
+  
+  randomSeed(analogRead(0));
   
   tim  = spd / 20 +2;
   tim2 = spd + 70;
@@ -27,17 +32,35 @@ void change_prog()
   if( millis()-changed > 30*1000 ){
     prog = (++prog) % 4 + 1;
     changed = millis();
+    
+    digitalWrite(R, LOW);
+    digitalWrite(G, LOW);
+    digitalWrite(B, LOW);
+    delay(300);
   }
 }
+
+void lightCode(byte code, short dir, int tm){
+  for(int level=dir>0?0:255; (dir>0 && level<=255) || (dir<0 && level>=0); level=level+dir){
+     if(code&1) analogWrite(R,level);
+     if(code&2) analogWrite(G,level);
+     if(code&4) analogWrite(B,level);
+     delay(tm);
+  }
+}
+
+byte prog_1_data[] = {1,4, 1,3 };
 
 void prog_1(){
   int r, g, b;
 
-  digitalWrite(R, LOW);
-  digitalWrite(G, LOW);
-  digitalWrite(B, LOW);
-  delay(300);
+  //if(curr==  
+  lightCode(curr, 1, tim);
+  lightCode(curr,-1, tim);
+  delay(tim+500);
 
+  old = curr;  
+/*  
   for( r = 0; r < 255; r++ ){ 
     analogWrite(R, r);
     delay(tim);
@@ -103,59 +126,16 @@ void prog_1(){
     analogWrite(B, r);
     delay(tim);
   }
-  delay(tim+500);
+  delay(tim+500); */
 }
 
 void prog_2(){
-  int r,b,g;
-
-  digitalWrite(R, LOW);
-  digitalWrite(G, LOW);
-  digitalWrite(B, LOW);
-  delay(300);
-
-  // �����
-  for( b = 0; b <= 255; b++ ){ 
-    analogWrite(B, b);
-    delay(tim);
-  } 
-
-  // ����������
-  for( r = 0; r <= 255; r++ ){ 
-    analogWrite(R, r);
-    delay(tim);
-  }
-  
-  // �������
-  for( b = 255; b >= 0; b-- ){ 
-    analogWrite(B, b);
-    delay(tim);
-  } 
-  // ������
-  for( g = 0; g <= 255; g++ ){ 
-    analogWrite(G, g);
-    delay(tim);
-  } 
-  // �������
-  for( r = 255; r >= 0; r-- ){ 
-    analogWrite(R, r);
-    delay(tim);
-  } 
-  // ���������
-  for( b = 0; b <= 255; b++ ){ 
-    analogWrite(B, b);
-    delay(tim);
-  } 
-  // �������
-  for( g = 255; g >= 0; g-- ){ 
-    analogWrite(G, g);
-    delay(tim);
-  }
+  analogWrite( R, random(0,255) );
+  analogWrite( G, random(0,255) );
+  analogWrite( B, random(0,255) );
+  delay( tim2 );
 }
 
-
-byte old = 0;
-byte curr = 0;
 
 void prog_3(){
   curr = (curr+1) & 7;
@@ -191,33 +171,18 @@ void prog_3(){
   old = curr;
 }
 
-
 void prog_4(){
-  digitalWrite(R, LOW);
-  digitalWrite(G, LOW);
-  digitalWrite(B, LOW);
-  delay(300);
-
-  for(byte i=1;i<7;i++){
-    for(byte j=0;j<3;j++){
-      if( i & 1 )
-        digitalWrite(R, HIGH);
-      if( i & 2 )
-        digitalWrite(G, HIGH);
-      if( i & 4 )
-        digitalWrite(B, HIGH);
-          
-      delay(tim2);
+  if( debug>0 ) return;  
+  curr = (curr+1)&7;
+  if(curr==7) curr=1;
   
-      if( i & 1 )
-        digitalWrite(R, LOW);
-      if( i & 2 )
-        digitalWrite(G, LOW);
-      if( i & 4 )
-        digitalWrite(B, LOW);
-      delay(tim2);
-    }
+  for(byte j=0; j<2; j++){
+    lightCode(curr,  1, 0);
+    delay(tim2);
+    lightCode(curr, -1, 0);
+    delay(tim2);
   }
+  old = curr;
 }
 
 
@@ -231,5 +196,5 @@ void loop() {
   if( prog==0 || prog==3)  prog_3();
   if( prog==0 || prog==4)  prog_4();
   
-  debug = 1;
+  //debug = 1;
 }
