@@ -29,14 +29,75 @@ void PROG()                         // Программа выполняющая
   }
 }
 
+
+
+
+void prog_3(){
+  byte old = 0;
+  for(byte curr=0; curr<7; curr++){
+    for(byte level=0; level<255; level++){ 
+      // Red 
+      if( (old&1)==0 && (curr&1) ){
+        analogWrite(R, level);
+      } 
+      if( old&1 && (curr&1)==0 ){
+        analogWrite(R, 255-level);
+      }
+      // Green 
+      if( (old&2)==0 && (curr&2) ){
+        analogWrite(G, level);
+      }
+      if( old&2 && (curr&2)==0 ){
+        analogWrite(G, 255-level);
+      }
+      // Blue
+      if( (old&4)==0 && (curr&4) ){
+        analogWrite(B, level);
+      }
+      
+      if( old&4 && (curr&4)==0 ){
+        analogWrite(B, 255-level);
+      }
+      delay(5);
+    }
+    if(curr&1) analogWrite(R,0);
+    if(curr&2) analogWrite(G,0);
+    if(curr&4) analogWrite(B,0);
+    old = curr;
+  }
+}
+
+void prog_4(){
+   for(byte i=1;i<7;i++){
+     for(byte j=0;j<3;j++){
+       if( i & 1 )
+          digitalWrite(R, HIGH);
+       if( i & 2 )
+          digitalWrite(G, HIGH);
+       if( i & 4 )
+          digitalWrite(B, HIGH);
+          
+       delay(tim2);
+  
+       if( i & 1 )
+          digitalWrite(R, LOW);
+       if( i & 2 )
+          digitalWrite(G, LOW);
+       if( i & 4 )
+          digitalWrite(B, LOW);
+       delay(tim2);
+     }
+  }
+}
+
 void loop() {
- int r, g, b;                         // переменные хранения заполнения ШИМ для цветов 
 
  // PROG();
+ prog_4();
 //tim = (analogRead(pot)/20)+2;         //читаем значение потенциометра
 //tim2 = analogRead(pot)+70;            //читаем значение потенциометра
 
-
+/*
 //---------------------Первая программа-------------------------
 if (prog==0 | prog==3){       // Выполнять если включена программа №0 или №3
 for (r = 0; r < 255; r++) { 
@@ -136,31 +197,14 @@ for (r = 255; r >= 0; r--) {
     delay(tim);
   }
  }
+*/
 
  //---------------------------Еретья программа-------------------------------
+ /*
  if(prog==2 | prog==3){         // Выполнять если включена программа №2 или №3
  
-   for(byte i=1;i<7;i++){
-     for(byte j=0;j<2;j++){
-       if( i & 1 )
-          digitalWrite(R, HIGH);
-       if( i & 2 )
-          digitalWrite(G, HIGH);
-       if( i & 4 )
-          digitalWrite(B, HIGH);
-          
-       delay(tim2);
-  
-       if( i & 1 )
-          digitalWrite(R, LOW);
-       if( i & 2 )
-          digitalWrite(G, LOW);
-       if( i & 4 )
-          digitalWrite(B, LOW);
-       delay(tim2);
-     }
-  }
-      
+*/
+
   /*    
   digitalWrite(R,HIGH);
    delay(tim2);
@@ -186,8 +230,8 @@ for (r = 255; r >= 0; r--) {
    delay(tim2);
   digitalWrite(B,LOW);
    delay(tim2);
-   */
   }
-  
+   */
+ 
   
 }
