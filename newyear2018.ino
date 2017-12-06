@@ -6,8 +6,8 @@
 
 // Predefined settings
 #define SPEED 255
-#define START_PROG           1+AUTO_CHANGE_BIT
-#define AUTO_CHANGE_INTERVAL 60*10000
+#define START_PROG           (0+AUTO_CHANGE_BIT)
+#define AUTO_CHANGE_INTERVAL 30*1000
 
 // Color scheme codes
 #define CODE_RED     0x1
@@ -29,10 +29,13 @@ int tim  = SPEED / 20 + 2;
 int tim2 = SPEED + 70;
 
 unsigned long changed = 0;
-byte debug = 0;
+//byte debug = 0;
 
 
 void setup() {
+#ifdef DEBUG
+  Serial.begin(9600);
+#endif
   pinMode(R, OUTPUT);
   pinMode(G, OUTPUT);
   pinMode(B, OUTPUT);
@@ -41,14 +44,21 @@ void setup() {
   attachInterrupt( digitalPinToInterrupt(BUTTON), next_prog, FALLING );
   
   randomSeed(analogRead(0));
+  next_prog();
 }
 
 
 void next_prog(){
-   byte next = prog&(AUTO_CHANGE_BIT) + 1;
+   byte next = (prog&(AUTO_CHANGE_BIT-1)) + 1;
    if( next>4 ) next = 1;
-
    prog = next | (prog&AUTO_CHANGE_BIT) ;
+   
+#ifdef DEBUG
+   Serial.print( "changed to prog: ");
+   Serial.print( (byte)prog&(AUTO_CHANGE_BIT-1) );
+   Serial.print( " auto change: ");
+   Serial.println( (prog&AUTO_CHANGE_BIT)>1 );
+#endif
 
    changed = millis();
 
@@ -151,7 +161,7 @@ void prog_4(){
 
 
 void loop() {
-  if( debug>0 ) return; 
+  //if( debug>0 ) return; 
   change_prog_timer();
 
   switch( prog & (AUTO_CHANGE_BIT-1) ){
