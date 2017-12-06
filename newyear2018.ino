@@ -1,42 +1,68 @@
-#define R 9           // ������� ���
-#define G 3           // ������� ���
-#define B 5           // ����� ���
+// Pin configuration
+#define R 9
+#define G 3
+#define B 5
+#define BUTTON 2
 
-// ��������
+// Predefined settings
+#define SPEED 255
+#define START_PROG           1+AUTO_CHANGE_BIT
+#define AUTO_CHANGE_INTERVAL 60*10000
+
+// Color scheme codes
+#define CODE_RED     0x1
+#define CODE_GREEN   0x2
+#define CODE_BLUE    0x4
+#define CODE_YELLOW  CODE_RED+CODE_GREEN
+#define CODE_MAGENTA CODE_RED+CODE_BLUE
+#define CODE_CYAN    CODE_GREEN+CODE_BLUE
+#define CODE_WHITE   CODE_RED+CODE_GREEN+CODE_BLUE
+
+#define AUTO_CHANGE_BIT  8
+
 byte old  = 0;
 byte curr = 0;
 
-int tim = 0;
-int tim2 = 0;
+byte prog = START_PROG;
 
-int prog = 2;        // ���������� �������� ������ �������� 
+int tim  = SPEED / 20 + 2;
+int tim2 = SPEED + 70;
 
-int spd = 255;
 unsigned long changed = 0;
-int debug = 0;
+byte debug = 0;
+
 
 void setup() {
-  pinMode(R, OUTPUT);      // ��� R �� �����
-  pinMode(G, OUTPUT);      // ��� G �� �����
-  pinMode(B, OUTPUT);      // ��� B �� �����
+  pinMode(R, OUTPUT);
+  pinMode(G, OUTPUT);
+  pinMode(B, OUTPUT);
+
+  pinMode(BUTTON, INPUT_PULLUP);
+  attachInterrupt( digitalPinToInterrupt(BUTTON), next_prog, FALLING );
   
   randomSeed(analogRead(0));
-  
-  tim  = spd / 20 +2;
-  tim2 = spd + 70;
 }
 
 
-void change_prog()
+void next_prog(){
+   byte next = prog&(AUTO_CHANGE_BIT) + 1;
+   if( next>4 ) next = 1;
+
+   prog = next | (prog&AUTO_CHANGE_BIT) ;
+
+   changed = millis();
+
+   digitalWrite(R, LOW);
+   digitalWrite(G, LOW);
+   digitalWrite(B, LOW);
+   delay(300);
+}
+
+
+void change_prog_timer()
 {
-  if( millis()-changed > 30*1000 ){
-    prog = (++prog) % 4 + 1;
-    changed = millis();
-    
-    digitalWrite(R, LOW);
-    digitalWrite(G, LOW);
-    digitalWrite(B, LOW);
-    delay(300);
+  if( prog&AUTO_CHANGE_BIT && millis()-changed >= AUTO_CHANGE_INTERVAL ){
+     next_prog();
   }
 }
 
@@ -49,90 +75,27 @@ void lightCode(byte code, short dir, int tm){
   }
 }
 
-byte prog_1_data[] = {1,4, 1,3 };
 
 void prog_1(){
-  int r, g, b;
-
-  //if(curr==  
+  switch(curr){
+     case CODE_RED:     curr = CODE_BLUE;    break;
+     case CODE_BLUE:    curr = CODE_YELLOW;  break;
+     case CODE_YELLOW:  curr = CODE_GREEN;   break;
+     case CODE_GREEN:   curr = CODE_MAGENTA; break;
+     case CODE_MAGENTA: curr = CODE_CYAN;    break;
+     default:           curr = CODE_RED;     
+  }
   lightCode(curr, 1, tim);
   lightCode(curr,-1, tim);
   delay(tim+500);
 
   old = curr;  
-/*  
-  for( r = 0; r < 255; r++ ){ 
-    analogWrite(R, r);
-    delay(tim);
-  }
-  for( r=255; r >= 0; r-- ){ 
-    analogWrite(R, r);
-    delay(tim);
-  }
-  delay(tim+500);
-    
-  for( r = 0; r < 255; r++ ){ 
-    analogWrite(B, r);
-    delay(tim);
-  }
-  for (r = 255; r >= 0; r--){ 
-    analogWrite(B, r);
-    delay(tim);
-  }
-  delay(tim+500);
-    
-  for( r = 0; r < 255; r++ ){ 
-    analogWrite(R, r);
-    analogWrite(G, r);
-    delay(tim);
-  }
-  for( r = 255; r >= 0; r-- ){ 
-    analogWrite(R, r);
-    analogWrite(G, r);
-    delay(tim);
-  }
-  delay(tim+500);
-
-    
-  for( r = 0; r < 255; r++ ){ 
-    analogWrite(G, r);
-    delay(tim);
-  }
-  for (r = 255; r >= 0; r--){ 
-    analogWrite(G, r);
-    delay(tim);
-  }
-  delay(tim+500);
-    
-  for( r = 0; r < 255; r++){ 
-    analogWrite(R, r);
-    analogWrite(B, r);
-    delay(tim);
-  }
-  for( r = 255; r >= 0; r--){ 
-    analogWrite(R, r);
-    analogWrite(B, r);
-    delay(tim);
-  }
-  delay(tim+500);
-    
-  for( r = 0; r < 255; r++ ){ 
-    analogWrite(G, r);
-    analogWrite(B, r);
-    delay(tim);
-  }
-  for( r = 255; r >= 0; r--){ 
-    analogWrite(G, r);
-    analogWrite(B, r);
-    delay(tim);
-  }
-  delay(tim+500); */
 }
 
 void prog_2(){
-  analogWrite( R, random(0,255) );
-  analogWrite( G, random(0,255) );
-  analogWrite( B, random(0,255) );
+  analogWrite( R, random(0,256) );
+  analogWrite( G, random(0,256) );
+  analogWrite( B, random(0,256) );
   delay( tim2 );
 }
 
@@ -171,10 +134,10 @@ void prog_3(){
   old = curr;
 }
 
+
 void prog_4(){
-  if( debug>0 ) return;  
   curr = (curr+1)&7;
-  if(curr==7) curr=1;
+  if( curr==7 ) curr=1;
   
   for(byte j=0; j<2; j++){
     lightCode(curr,  1, 0);
@@ -187,14 +150,23 @@ void prog_4(){
 
 
 
-
 void loop() {
- // change_prog();
+  if( debug>0 ) return; 
+  change_prog_timer();
 
-  if( prog==0 || prog==1)  prog_1();
-  if( prog==0 || prog==2)  prog_2();
-  if( prog==0 || prog==3)  prog_3();
-  if( prog==0 || prog==4)  prog_4();
-  
+  switch( prog & (AUTO_CHANGE_BIT-1) ){
+     case 1: 
+         prog_1(); 
+         break;
+     case 2:
+         prog_2();
+         break;
+     case 3:
+         prog_3();
+         break;
+     case 4:
+         prog_4();
+         break;
+  }
   //debug = 1;
 }
