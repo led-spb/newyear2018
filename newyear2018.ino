@@ -110,9 +110,12 @@ void prog_2(){
 }
 
 
-void prog_3(){
+void prog_3(){/*
   curr = (curr+1) & 7;
-  if(curr==7) curr=1;
+  if(curr==7) curr=1;*/
+  do{
+    curr = random(1,8);
+  }while(curr==old);
 
   for(int level=0; level<=255; level++){ 
     // Red 
