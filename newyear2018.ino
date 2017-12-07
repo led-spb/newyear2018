@@ -8,6 +8,7 @@
 #define SPEED 255
 #define START_PROG           (0+AUTO_CHANGE_BIT)
 #define AUTO_CHANGE_INTERVAL 30*1000
+//#define DEBUG 1
 
 // Color scheme codes
 #define CODE_RED     0x1
@@ -49,8 +50,8 @@ void setup() {
 
 
 void next_prog(){
-   byte next = (prog&(AUTO_CHANGE_BIT-1)) + 1;
-   if( next>4 ) next = 1;
+   byte next = prog&(AUTO_CHANGE_BIT-1);
+   if( (++next)>4 ) next = 1;
    prog = next | (prog&AUTO_CHANGE_BIT) ;
    
 #ifdef DEBUG
@@ -152,6 +153,7 @@ void prog_4(){
   curr = (curr+1)&7;
   if( curr==7 ) curr=1;
   
+  // Blink color twice
   for(byte j=0; j<2; j++){
     lightCode(curr,  1, 0);
     delay(tim2);
