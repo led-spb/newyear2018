@@ -1,3 +1,5 @@
+#include "LowPower.h"
+
 // Pin configuration
 #define R 9
 #define G 3
@@ -7,7 +9,8 @@
 // Predefined settings
 #define SPEED 255
 #define START_PROG           (0+AUTO_CHANGE_BIT)
-#define AUTO_CHANGE_INTERVAL 30*1000
+#define AUTO_CHANGE_INTERVAL 30L*1000
+#define SLEEP_INTERVAL       180L*1000
 //#define DEBUG 1
 
 // Color scheme codes
@@ -30,6 +33,7 @@ int tim  = SPEED / 20 + 2;
 int tim2 = SPEED + 70;
 
 unsigned long changed = 0;
+unsigned long waked = 0;
 //byte debug = 0;
 
 
@@ -42,10 +46,32 @@ void setup() {
   pinMode(B, OUTPUT);
 
   pinMode(BUTTON, INPUT_PULLUP);
-  attachInterrupt( digitalPinToInterrupt(BUTTON), next_prog, FALLING );
+  // now we only wake on button
+  attachInterrupt( digitalPinToInterrupt(BUTTON), wake_up, FALLING );
   
   randomSeed(analogRead(0));
   next_prog();
+}
+
+void wake_up(){
+#ifdef DEBUG
+  Serial.println("Waked");
+#endif
+  waked = millis();
+}
+
+void sleep(){
+#ifdef DEBUG
+//  Serial.println("Now we go to sleep");
+#endif
+  digitalWrite(R, LOW);
+  digitalWrite(G, LOW);
+  digitalWrite(B, LOW);
+  
+  //attachInterrupt( digitalPinToInterrupt(BUTTON), wake_up, FALLING );
+  //delay(100);
+  LowPower.powerDown(SLEEP_FOREVER, ADC_OFF, BOD_OFF);
+  //detachInterrupt( digitalPinToInterrupt(BUTTON) );
 }
 
 
@@ -72,7 +98,7 @@ void next_prog(){
 
 void change_prog_timer()
 {
-  if( prog&AUTO_CHANGE_BIT && millis()-changed >= AUTO_CHANGE_INTERVAL ){
+  if( (prog&AUTO_CHANGE_BIT) && ((millis()-changed) >= AUTO_CHANGE_INTERVAL) ){
      next_prog();
   }
 }
@@ -169,6 +195,10 @@ void loop() {
   //if( debug>0 ) return; 
   change_prog_timer();
 
+  #ifdef DEBUG
+    Serial.println( digitalRead( BUTTON ) );
+  #endif
+
   switch( prog & (AUTO_CHANGE_BIT-1) ){
      case 1: 
          prog_1(); 
@@ -182,6 +212,10 @@ void loop() {
      case 4:
          prog_4();
          break;
+  }
+
+  if( (millis()-waked) >= SLEEP_INTERVAL ){
+    sleep();
   }
   //debug = 1;
 }
