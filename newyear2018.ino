@@ -242,17 +242,17 @@ void loop() {
     if( button_timer == 0 ){
        button_timer = millis();
     }
-
-    if( (millis()-button_timer) >= LONG_PRESS_MILLIS ){
-        // Long pressed
-        button_timer = 0;
-        sleep();
-    }
   }else{
     if( button_timer>0 ){
-        // Short pressed
-        button_timer = 0;
-        next_prog();
+       if( (millis()-button_timer) >= LONG_PRESS_MILLIS ){
+          // Long pressed
+          button_timer = 0;
+          sleep();
+       }else{
+          // Short pressed
+          button_timer = 0;
+          next_prog();
+       }
     }
   }
 
