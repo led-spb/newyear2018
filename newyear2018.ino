@@ -1,4 +1,5 @@
-#include "LowPower.h"
+#include "LowPower.h"          
+#include "Bounce2.h"
 
 // Pin configuration
 #define R 9
@@ -11,31 +12,42 @@
 #define START_PROG           (0+AUTO_CHANGE_BIT)
 #define AUTO_CHANGE_INTERVAL 30L*1000
 #define SLEEP_INTERVAL       180L*1000
+#define LONG_PRESS_MILLIS    2*1000
 //#define DEBUG 1
 
 // Color scheme codes
-#define CODE_RED     0x1
-#define CODE_GREEN   0x2
-#define CODE_BLUE    0x4
-#define CODE_YELLOW  CODE_RED+CODE_GREEN
-#define CODE_MAGENTA CODE_RED+CODE_BLUE
-#define CODE_CYAN    CODE_GREEN+CODE_BLUE
-#define CODE_WHITE   CODE_RED+CODE_GREEN+CODE_BLUE
+
+#define VALUE_RED(v)    (unsigned char)((v)&0xFF)
+#define VALUE_GREEN(v)  (unsigned char)((v>>8)&0xFF)
+#define VALUE_BLUE(v)   (unsigned char)((v>>16)&0xFF)
+
+#define RGB(r,g,b)      ( ((unsigned long)r&0xFF) + (((unsigned long)g&0xFF)<<8) + (((unsigned long)b&0xFF)<<16) )
+
+#define RED          RGB(255,0,0)
+#define GREEN        RGB(0,255,0)
+#define BLUE         RGB(0,0,255)
+#define YELLOW       RGB(255,255,0)
+#define MAGENTA      RGB(255,0,255) 
+#define CYAN         RGB(0,255,255)
+#define WHITE        RGB(255,255,255)
+#define BLACK        RGB(0,0,0)
 
 #define AUTO_CHANGE_BIT  8
 
-byte old  = 0;
-byte curr = 0;
+unsigned long curr  = 0;
+unsigned long color = 0;
 
 byte prog = START_PROG;
 
 int tim  = SPEED / 20 + 2;
 int tim2 = SPEED + 70;
 
-unsigned long changed = 0;
-unsigned long waked = 0;
+int stage = 0;
+volatile unsigned long changed = 0;
+volatile unsigned long waked = 0;
 //byte debug = 0;
 
+Bounce button = Bounce(BUTTON, 15);
 
 void setup() {
 #ifdef DEBUG
@@ -46,9 +58,7 @@ void setup() {
   pinMode(B, OUTPUT);
 
   pinMode(BUTTON, INPUT_PULLUP);
-  // now we only wake on button
-  attachInterrupt( digitalPinToInterrupt(BUTTON), wake_up, FALLING );
-  
+
   randomSeed(analogRead(0));
   next_prog();
 }
@@ -61,23 +71,19 @@ void wake_up(){
 }
 
 void sleep(){
-#ifdef DEBUG
-//  Serial.println("Now we go to sleep");
-#endif
-  digitalWrite(R, LOW);
-  digitalWrite(G, LOW);
-  digitalWrite(B, LOW);
-  
-  //attachInterrupt( digitalPinToInterrupt(BUTTON), wake_up, FALLING );
-  //delay(100);
-  LowPower.powerDown(SLEEP_FOREVER, ADC_OFF, BOD_OFF);
-  //detachInterrupt( digitalPinToInterrupt(BUTTON) );
+  setColor(BLACK);
+
+  attachInterrupt( digitalPinToInterrupt(BUTTON), wake_up, FALLING );
+  // Here we sleep
+  LowPower.powerDown( SLEEP_FOREVER, ADC_OFF, BOD_OFF );
+  // Here we waked
+  detachInterrupt( digitalPinToInterrupt(BUTTON) );
 }
 
 
 void next_prog(){
    byte next = prog&(AUTO_CHANGE_BIT-1);
-   if( (++next)>4 ) next = 1;
+   next = ((next+1) % 3) + 1;
    prog = next | (prog&AUTO_CHANGE_BIT) ;
    
 #ifdef DEBUG
@@ -86,12 +92,11 @@ void next_prog(){
    Serial.print( " auto change: ");
    Serial.println( (prog&AUTO_CHANGE_BIT)>1 );
 #endif
-
    changed = millis();
 
-   digitalWrite(R, LOW);
-   digitalWrite(G, LOW);
-   digitalWrite(B, LOW);
+   color = BLACK;
+   setColor(BLACK);
+
    delay(300);
 }
 
@@ -103,105 +108,159 @@ void change_prog_timer()
   }
 }
 
-void lightCode(byte code, short dir, int tm){
-  for(int level=dir>0?0:255; (dir>0 && level<=255) || (dir<0 && level>=0); level=level+dir){
-     if(code&1) analogWrite(R,level);
-     if(code&2) analogWrite(G,level);
-     if(code&4) analogWrite(B,level);
-     delay(tm);
-  }
+void setColor(unsigned long c){
+   curr = c;
+   analogWrite(R, VALUE_RED(c) );
+   analogWrite(G, VALUE_GREEN(c) );
+   analogWrite(B, VALUE_BLUE(c) );
 }
 
 
+// black -> color -> black
 void prog_1(){
-  switch(curr){
-     case CODE_RED:     curr = CODE_BLUE;    break;
-     case CODE_BLUE:    curr = CODE_YELLOW;  break;
-     case CODE_YELLOW:  curr = CODE_GREEN;   break;
-     case CODE_GREEN:   curr = CODE_MAGENTA; break;
-     case CODE_MAGENTA: curr = CODE_CYAN;    break;
-     default:           curr = CODE_RED;     
-  }
-  lightCode(curr, 1, tim);
-  lightCode(curr,-1, tim);
-  delay(tim+500);
+  if( curr==color ){
+     delay( tim+500 );
 
-  old = curr;  
+     stage = (stage+1) % 12;
+     switch( stage ){
+        case 0:  color = BLACK;   break;
+        case 1:  color = RED;     break;
+        case 2:  color = BLACK;   break;
+        case 3:  color = BLUE;    break;
+        case 4:  color = BLACK;   break;
+        case 5:  color = YELLOW;  break;
+        case 6:  color = BLACK;   break;
+        case 7:  color = GREEN;   break;
+        case 8:  color = BLACK;   break;
+        case 9:  color = MAGENTA; break;
+        case 10: color = BLACK;   break;
+        case 11: color = CYAN;    break;
+     }
+  }
+
+  if( VALUE_RED(curr) < VALUE_RED(color) ){
+     curr = curr + 1;
+  }
+  if( VALUE_RED(curr) > VALUE_RED(color) ){
+     curr = curr - 1;
+  }
+  if( VALUE_GREEN(curr) < VALUE_GREEN(color) ){
+     curr = curr + (1L<<8);
+  }
+  if( VALUE_GREEN(curr) > VALUE_GREEN(color) ){
+     curr = curr - (1L<<8);
+  }
+  if( VALUE_BLUE(curr) < VALUE_BLUE(color) ){
+     curr = curr + (1L<<16);
+  }
+  if( VALUE_BLUE(curr) > VALUE_BLUE(color) ){
+     curr = curr - (1L<<16);
+  }
+  setColor( curr );
+  delay( tim );
 }
 
+
+// Random color overflow
 void prog_2(){
-  analogWrite( R, random(0,256) );
-  analogWrite( G, random(0,256) );
-  analogWrite( B, random(0,256) );
+  if( color==curr ){
+     color = RGB( random(0,256), random(0,256), random(0,256) );
+  }
+
+  if( VALUE_RED(curr) < VALUE_RED(color) ){
+     curr = curr + 1;
+  }
+  if( VALUE_RED(curr) > VALUE_RED(color) ){
+     curr = curr - 1;
+  }
+  if( VALUE_GREEN(curr) < VALUE_GREEN(color) ){
+     curr = curr + (1L<<8);
+  }
+  if( VALUE_GREEN(curr) > VALUE_GREEN(color) ){
+     curr = curr - (1L<<8);
+  }
+  if( VALUE_BLUE(curr) < VALUE_BLUE(color) ){
+     curr = curr + (1L<<16);
+  }
+  if( VALUE_BLUE(curr) > VALUE_BLUE(color) ){
+     curr = curr - (1L<<16);
+  }
+  setColor( curr );
+  delay( 8 );
+}
+
+// Blink twice
+void prog_3(){
+  stage = (stage+1) % 24;
+  switch( stage ){
+     case 0:  color = BLACK;   break;
+     case 1:  color = RED;     break;
+     case 2:  color = BLACK;   break;
+     case 3:  color = RED;     break;
+
+     case 4:  color = BLACK;   break;
+     case 5:  color = BLUE;    break;
+     case 6:  color = BLACK;   break;
+     case 7:  color = BLUE;    break;
+
+     case 8:  color = BLACK;   break;
+     case 9:  color = YELLOW;  break;
+     case 10: color = BLACK;   break;
+     case 11: color = YELLOW;  break;
+
+     case 12: color = BLACK;   break;
+     case 13: color = GREEN;   break;
+     case 14: color = BLACK;   break;
+     case 15: color = GREEN;   break;
+
+     case 16: color = BLACK;   break;
+     case 17: color = MAGENTA; break;
+     case 18: color = BLACK;   break;
+     case 19: color = MAGENTA; break;
+
+     case 20: color = BLACK;   break;
+     case 21: color = CYAN;    break;
+     case 22: color = BLACK;   break;
+     case 23: color = CYAN;    break;
+  }
+  setColor(color);
   delay( tim2 );
 }
 
-
-void prog_3(){/*
-  curr = (curr+1) & 7;
-  if(curr==7) curr=1;*/
-  do{
-    curr = random(1,8);
-  }while(curr==old);
-
-  for(int level=0; level<=255; level++){ 
-    // Red 
-    if( (old&1)==0 && (curr&1) ){
-      analogWrite(R, level);
-    } 
-    if( old&1 && (curr&1)==0 ){
-      analogWrite(R, 255-level);
-    }
-
-    // Green 
-    if( (old&2)==0 && (curr&2) ){
-      analogWrite(G, level);
-    }
-    if( old&2 && (curr&2)==0 ){
-      analogWrite(G, 255-level);
-    }
-
-    // Blue
-    if( (old&4)==0 && (curr&4) ){
-      analogWrite(B, level);
-    }
-    if( old&4 && (curr&4)==0 ){
-      analogWrite(B, 255-level);
-    }
-    delay(10);
-  }
-  delay(1000);
-  old = curr;
-}
-
-
 void prog_4(){
-  curr = (curr+1)&7;
-  if( curr==7 ) curr=1;
-  
-  // Blink color twice
-  for(byte j=0; j<2; j++){
-    lightCode(curr,  1, 0);
-    delay(tim2);
-    lightCode(curr, -1, 0);
-    delay(tim2);
-  }
-  old = curr;
 }
 
-
+boolean button_active = false;
+long button_timer = 0;
 
 void loop() {
   //if( debug>0 ) return; 
-  change_prog_timer();
 
-  #ifdef DEBUG
-    Serial.println( digitalRead( BUTTON ) );
-  #endif
+  // On long press - sleep, on short - change prog
+  button.update();
+  if( button.read()==LOW ){
+    if( button_timer == 0 ){
+       button_timer = millis();
+    }
+
+    if( (millis()-button_timer) >= LONG_PRESS_MILLIS ){
+        // Long pressed
+        button_timer = 0;
+        sleep();
+    }
+  }else{
+    if( button_timer>0 ){
+        // Short pressed
+        button_timer = 0;
+        next_prog();
+    }
+  }
+
+  change_prog_timer();
 
   switch( prog & (AUTO_CHANGE_BIT-1) ){
      case 1: 
-         prog_1(); 
+         prog_1();
          break;
      case 2:
          prog_2();
@@ -214,7 +273,7 @@ void loop() {
          break;
   }
 
-  if( (millis()-waked) >= SLEEP_INTERVAL ){
+  if( SLEEP_INTERVAL>0 &&  (millis()-waked)>=SLEEP_INTERVAL ){
     sleep();
   }
   //debug = 1;
